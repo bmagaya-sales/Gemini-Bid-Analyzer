@@ -1,0 +1,5 @@
+{
+  "name": "AI Government Bid Analysis Tool",
+  "description": "An AI-powered tool to analyze government bid solicitations. It filters for relevance, extracts key insights, and flags items for human review, transforming unstructured text into a structured JSON output for efficient decision-making.",
+  "requestFramePermissions": []
+}

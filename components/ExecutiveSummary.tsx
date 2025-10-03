@@ -28,7 +28,7 @@ const ExecutiveSummary: React.FC<{ data: BidAnalysis; }> = ({ data }) => {
   } = data;
 
   return (
-    <div className="printable-summary bg-white p-8 rounded-lg shadow-lg font-serif">
+    <div id="executive-summary-content" className="printable-summary bg-white p-8 rounded-lg shadow-lg font-serif">
       {/* Header */}
       <header className="text-center border-b pb-4 mb-6">
         <h1 className="text-3xl font-bold text-gray-900">{solicitationDetails.title || 'Untitled Solicitation'}</h1>

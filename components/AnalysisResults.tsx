@@ -4,6 +4,8 @@ import ResultCard from './ResultCard';
 import HumanReviewFlags from './HumanReviewFlags';
 import LineItemsTable from './LineItemsTable';
 import ExecutiveSummary from './ExecutiveSummary';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface AnalysisResultsProps {
   data: BidAnalysis;
@@ -78,8 +80,46 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data, onDownloadJson 
     contact: 'Contact & Compliance',
   };
 
-  const handlePrintSummary = () => {
-    window.print();
+  const handleDownloadPdf = async () => {
+    const summaryElement = document.getElementById('executive-summary-content');
+    if (!summaryElement) {
+        console.error("Executive summary element not found for PDF generation.");
+        return;
+    }
+
+    const canvas = await html2canvas(summaryElement, { 
+        scale: 2, // higher scale for better quality
+        useCORS: true 
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    
+    // Using jsPDF. format: a4, unit: mm. A4 is 210 x 297 mm
+    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const canvasAspectRatio = canvasWidth / canvasHeight;
+
+    let finalPdfWidth = pdfWidth;
+    let finalPdfHeight = finalPdfWidth / canvasAspectRatio;
+
+    // If the height is bigger than the page, scale down to fit page height
+    if (finalPdfHeight > pdfHeight) {
+        finalPdfHeight = pdfHeight;
+        finalPdfWidth = finalPdfHeight * canvasAspectRatio;
+    }
+
+    // Center the image
+    const x = (pdfWidth - finalPdfWidth) / 2;
+    const y = (pdfHeight - finalPdfHeight) / 2;
+
+    pdf.addImage(imgData, 'PNG', x, y, finalPdfWidth, finalPdfHeight);
+    
+    const title = data.solicitationDetails.title?.replace(/\W+/g, '_') || 'executive_summary';
+    pdf.save(`${title}.pdf`);
   };
 
   const handleDownloadCsv = () => {
@@ -203,13 +243,13 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data, onDownloadJson 
                  <JsonViewToggle isJsonVisible={isJsonVisible} setJsonVisible={setJsonVisible} />
                  <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
                      <button
-                         onClick={handlePrintSummary}
+                         onClick={handleDownloadPdf}
                          className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm2-9V5a2 2 0 012-2h2a2 2 0 012 2v3" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                           </svg>
-                          Print Summary
+                          Download PDF
                       </button>
                       <button
                          onClick={handleDownloadCsv}

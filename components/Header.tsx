@@ -1,6 +1,14 @@
 import React from 'react';
 
 const Header: React.FC = () => {
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    // Placeholder for future navigation logic.
+    // This prevents the default anchor behavior which can cause a page reload.
+    console.log("Navigation link clicked. Implement routing.");
+  };
+
   return (
     <header className="bg-white shadow-md">
       <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
@@ -12,9 +20,9 @@ const Header: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">AI Government Bid Analyzer</h1>
             </div>
             <nav className="hidden sm:flex space-x-4">
-                <a href="#" className="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2 rounded-md text-sm">Dashboard</a>
-                <a href="#" className="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2 rounded-md text-sm">Uploads</a>
-                <a href="#" className="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2 rounded-md text-sm">Settings</a>
+                <a href="#" onClick={handleNavClick} className="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2 rounded-md text-sm">Dashboard</a>
+                <a href="#" onClick={handleNavClick} className="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2 rounded-md text-sm">Uploads</a>
+                <a href="#" onClick={handleNavClick} className="text-gray-600 hover:text-indigo-600 font-medium px-3 py-2 rounded-md text-sm">Settings</a>
             </nav>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { BidAnalysis } from '../types';
 import ResultCard from './ResultCard';
 import HumanReviewFlags from './HumanReviewFlags';
 import LineItemsTable from './LineItemsTable';
+import ExecutiveSummary from './ExecutiveSummary';
 
 interface AnalysisResultsProps {
   data: BidAnalysis;
@@ -66,18 +67,52 @@ const JsonViewToggle: React.FC<{ isJsonVisible: boolean, setJsonVisible: (visibl
 
 
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data, onDownloadJson }) => {
-  const [activeTab, setActiveTab] = useState('requirements'); // Default to requirements tab
+  const [activeTab, setActiveTab] = useState('summary');
   const [isJsonVisible, setJsonVisible] = useState(false);
 
   const TABS = {
+    summary: 'Executive Summary',
     requirements: 'Key Requirements',
     details: 'Solicitation Details',
     submission: 'Submission & Financials',
     contact: 'Contact & Compliance',
   };
 
+  const handlePrintSummary = () => {
+    window.print();
+  };
+
+  const handleDownloadCsv = () => {
+    if (!data || data.keyRequirements.lineItems.length === 0) return;
+
+    const items = data.keyRequirements.lineItems;
+    const headers = ['Item / Service', 'Quantity', 'Part #', 'Description'];
+    const csvRows = [
+      headers.join(','),
+      ...items.map(item => [
+        `"${item.name?.replace(/"/g, '""') || ''}"`,
+        `"${item.quantity?.toString().replace(/"/g, '""') || ''}"`,
+        `"${item.partNumber?.replace(/"/g, '""') || ''}"`,
+        `"${item.description?.replace(/"/g, '""') || ''}"`
+      ].join(','))
+    ];
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8,' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    const title = data.solicitationDetails.title?.replace(/\W+/g, '_') || 'bid_line_items';
+    link.setAttribute('download', `${title}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'summary':
+        return <ExecutiveSummary data={data} />;
       case 'details':
         return (
           <ResultCard title="Solicitation Details">
@@ -166,15 +201,35 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data, onDownloadJson 
          <div className="bg-white p-4 rounded-lg shadow-md">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 border-b pb-4">
                  <JsonViewToggle isJsonVisible={isJsonVisible} setJsonVisible={setJsonVisible} />
-                 <button
-                     onClick={onDownloadJson}
-                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Download JSON
-                  </button>
+                 <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
+                     <button
+                         onClick={handlePrintSummary}
+                         className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm2-9V5a2 2 0 012-2h2a2 2 0 012 2v3" />
+                          </svg>
+                          Print Summary
+                      </button>
+                      <button
+                         onClick={handleDownloadCsv}
+                         className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                          Line Items (CSV)
+                      </button>
+                     <button
+                         onClick={onDownloadJson}
+                         className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Download JSON
+                      </button>
+                 </div>
             </div>
         
             {isJsonVisible ? (

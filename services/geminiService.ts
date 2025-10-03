@@ -102,6 +102,7 @@ const bidAnalysisSchema = {
 const createBasePrompt = (): string => `
   You are an expert Government Bid Analyst. Your primary function is to serve as an intelligent filtering layer and an insight extraction tool. 
   Your task is to transform the raw, unstructured government bid solicitation data provided into a structured, deterministic JSON output.
+  The provided text may be a consolidation of multiple documents. Treat the entire text as a single, consolidated bid solicitation package.
   Do not invent, infer, or paraphrase information. Your output must be directly extracted from the source text.
   
   CRITICAL RULES:
@@ -113,12 +114,12 @@ const createBasePrompt = (): string => `
   6.  **Product Fit**: For 'productFit.type', use one of these exact values: 'brand_name_or_equal', 'specific_brand', or 'unspecified'. For 'isCarriedBrand', assume you do not carry any specific brands mentioned and return 'false' if a specific brand is named, otherwise return 'null'.
   7.  **Expired Bids**: If the submission deadline has passed or is today, add a flag to 'flags_for_human_review' noting the urgency or expiration.
 
-  Analyze the following bid text or document and return a single, valid JSON object matching the provided schema.
+  Analyze the following bid text and return a single, valid JSON object matching the provided schema.
 `;
 
-export const analyzeBid = async (content: { text?: string; file?: { mimeType: string; data: string } }): Promise<BidAnalysis> => {
-  if (!content.text?.trim() && !content.file) {
-    throw new Error("Bid text or file cannot be empty.");
+export const analyzeBid = async (content: { text: string }): Promise<BidAnalysis> => {
+  if (!content.text?.trim()) {
+    throw new Error("Bid text cannot be empty.");
   }
   
   if (!process.env.API_KEY) {
@@ -126,25 +127,8 @@ export const analyzeBid = async (content: { text?: string; file?: { mimeType: st
   }
 
   const basePrompt = createBasePrompt();
-  let contents;
-
-  if (content.text) {
-    contents = `${basePrompt}\n\n--- BID TEXT ---\n${content.text}\n--- END BID TEXT ---`;
-  } else if (content.file) {
-    contents = {
-      parts: [
-        { text: basePrompt },
-        {
-          inlineData: {
-            mimeType: content.file.mimeType,
-            data: content.file.data,
-          },
-        },
-      ],
-    };
-  } else {
-    throw new Error("No content provided to analyze.");
-  }
+  
+  const contents = `${basePrompt}\n\n--- BID TEXT ---\n${content.text}\n--- END BID TEXT ---`;
   
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",

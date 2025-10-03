@@ -9,7 +9,7 @@ import { analyzeBid } from './services/geminiService';
 
 const App: React.FC = () => {
   const [bidText, setBidText] = useState<string>('');
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; mimeType: string; data: string } | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<({ name: string; text: string }[])>([]);
   const [analysisResult, setAnalysisResult] = useState<BidAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,19 +17,23 @@ const App: React.FC = () => {
   const handleSetBidText = (text: string) => {
     setBidText(text);
     if (text) {
-      setUploadedFile(null); // Clear file if text is entered
+      setUploadedFiles([]); // Clear files if text is entered
     }
   };
 
-  const handleFileUpload = (file: { name: string; mimeType: string; data: string }) => {
-    setUploadedFile(file);
-    if (file) {
-      setBidText(''); // Clear text if file is uploaded
+  const handleFileUploads = (files: { name: string; text: string }[]) => {
+    setUploadedFiles(prevFiles => [...prevFiles, ...files]);
+    if (files.length > 0) {
+      setBidText(''); // Clear text if files are uploaded
     }
   };
   
-  const clearUploadedFile = () => {
-      setUploadedFile(null);
+  const removeUploadedFile = (indexToRemove: number) => {
+    setUploadedFiles(prevFiles => prevFiles.filter((_, index) => index !== indexToRemove));
+  };
+  
+  const clearAllUploadedFiles = () => {
+    setUploadedFiles([]);
   };
 
   const handleAnalyze = useCallback(async () => {
@@ -38,15 +42,18 @@ const App: React.FC = () => {
     setAnalysisResult(null);
 
     try {
-      if (!bidText.trim() && !uploadedFile) {
-        throw new Error("Please paste bid text or upload a file to analyze.");
+      if (!bidText.trim() && uploadedFiles.length === 0) {
+        throw new Error("Please paste bid text or upload one or more files to analyze.");
       }
 
-      const contentToAnalyze = uploadedFile
-        ? { file: { mimeType: uploadedFile.mimeType, data: uploadedFile.data } }
-        : { text: bidText };
+      let combinedText = bidText;
+      if (uploadedFiles.length > 0) {
+        combinedText = uploadedFiles
+          .map(f => `--- START OF DOCUMENT: ${f.name} ---\n\n${f.text}\n\n--- END OF DOCUMENT: ${f.name} ---`)
+          .join('\n\n');
+      }
 
-      const result = await analyzeBid(contentToAnalyze);
+      const result = await analyzeBid({ text: combinedText });
       setAnalysisResult(result);
     } catch (err) {
       if (err instanceof Error) {
@@ -57,7 +64,7 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [bidText, uploadedFile]);
+  }, [bidText, uploadedFiles]);
 
   const handleDownloadJson = useCallback(() => {
     if (!analysisResult) return;
@@ -82,11 +89,13 @@ const App: React.FC = () => {
             <BidInputForm 
               bidText={bidText} 
               setBidText={handleSetBidText}
-              onFileUpload={handleFileUpload}
-              uploadedFile={uploadedFile}
-              clearUploadedFile={clearUploadedFile}
+              onFileUploads={handleFileUploads}
+              uploadedFiles={uploadedFiles.map(f => ({ name: f.name }))}
+              removeUploadedFile={removeUploadedFile}
+              clearAllUploadedFiles={clearAllUploadedFiles}
               onAnalyze={handleAnalyze} 
               isLoading={isLoading} 
+              setError={setError}
             />
             <div className="mt-8">
               {isLoading && <LoadingSpinner />}
